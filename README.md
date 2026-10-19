@@ -43,7 +43,7 @@ sampling frequency, data source, measurement depth에 따라 t<sub>SMM</sub>이 
 
 ## 5. 분석 방법
 1. **기준 계산:** 각 자료에 모든 방법을 같은 전처리로 적용해 t<sub>SMM</sub> 비교표를 만든다.
-   계산은 저장소의 스킬(`.agents/skills/smm-timescale-compare/`) 스크립트로 수행해 재현성을 확보한다.
+   계산은 저장소의 스킬(`.claude/skills/smm-timescale-compare/`) 스크립트로 수행해 재현성을 확보한다.
 2. **Synthetic benchmark:** 참값을 아는 합성 시계열에서 방법별 bias와 spread(반복 생성 시 표준편차)를 구한다.
 3. **민감도 실험:** 합성 자료를 아래와 같이 변형해 방법별 t<sub>SMM</sub> 변화를 비교한다.
    - Record length: 5 / 10 / 20 / 30년
@@ -71,11 +71,11 @@ sampling frequency, data source, measurement depth에 따라 t<sub>SMM</sub>이 
 ```
 my-project/
 ├── README.md
-├── test_inputs/                      # synthetic benchmark 자료
-└── .agents/skills/smm-timescale-compare/
-    ├── SKILL.md
-    ├── references/research.md
-    └── scripts/compute_tsmm.py
+├── results/                          # t<SMM> 비교표·지점 시계열 (스크립트 출력)
+└── .claude/skills/smm-timescale-compare/
+    ├── SKILL.md                      # 사용 조건·작업 순서
+    ├── references/research.md        # 배경·용어·방법 정의
+    └── scripts/compute_tsmm.py       # 방법별 t<SMM> 계산 (결과는 results/에 저장)
 ```
 
 ## 9. 주요 참고문헌
