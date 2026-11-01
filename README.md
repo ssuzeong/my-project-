@@ -8,8 +8,8 @@ SMM의 크기는 보통 시간규모(t<sub>SMM</sub>)로 표현하지만, t<sub>
 
 Rahmati et al. (2024)은 이러한 방법들을 정리하면서, 여러 지표를 체계적으로 비교한 연구가
 사실상 McColl, Alemohammad, et al. (2017) 하나뿐(6개 지표)이라고 지적하고
-전체 지표를 비교하는 후속 연구를 요구했다. 또한 전처리(deseasonalization·detrending),
-sampling frequency, data source, measurement depth에 따라 t<sub>SMM</sub>이 달라진다고 보고했다.
+전체 지표를 비교하는 후속 연구를 요구한다. 또한 전처리(deseasonalization·detrending),
+sampling frequency, data source, measurement depth에 따라 t<sub>SMM</sub>이 달라진다고 보고한다.
 
 - **기준 논문:** Rahmati et al. (2024), *Soil Moisture Memory: State-Of-The-Art and the Way Forward*, Reviews of Geophysics, 62, e2023RG000828
 
@@ -38,12 +38,13 @@ sampling frequency, data source, measurement depth에 따라 t<sub>SMM</sub>이 
 
 ## 4. 자료
 - **Synthetic time series (참값을 아는 자료):** AR(1) process (참 τ 지정), stochastic bucket model (참 drydown τ 지정), hybrid model simulation
-- **실제 자료 (확정 예정):** 현장 관측(예: ISMN), 위성(예: SMAP L3/L4, ESA CCI), 재분석(예: ERA5-Land)
-- **대상 지역 (확정 예정):** 예) 동아시아/한반도
+- **실제 자료 (현재 사용):** ERA5 대기 재분석 일자료 (전구 0.25° 격자, 1440 × 721), 월별 파일 `/land1/ERA5/daily/land/YYYYMM_land.nc`
+  - 변수: 토양수분 `swvl1`(0–7 cm, m³/m³), 강수율 `mtpr`
+- **추후 비교 자료:** 현장 관측(예: ISMN), 위성(예: SMAP L3/L4, ESA CCI), 다른 재분석(예: MERRA-2, GLDAS)
 
 ## 5. 분석 방법
 1. **기준 계산:** 각 자료에 모든 방법을 같은 전처리로 적용해 t<sub>SMM</sub> 비교표를 만든다.
-   계산은 저장소의 스킬(`.claude/skills/smm-timescale-compare/`) 스크립트로 수행해 재현성을 확보한다.
+   계산은 저장소의 스킬(`.claude/skills/smm-timescale-compare/`)에 포함된 고정 스크립트로 수행해, 같은 입력이면 언제 누가 실행해도 같은 결과가 나오게 한다.
 2. **Synthetic benchmark:** 참값을 아는 합성 시계열에서 방법별 bias와 spread(반복 생성 시 표준편차)를 구한다.
 3. **민감도 실험:** 합성 자료를 아래와 같이 변형해 방법별 t<sub>SMM</sub> 변화를 비교한다.
    - Record length: 5 / 10 / 20 / 30년
@@ -54,6 +55,15 @@ sampling frequency, data source, measurement depth에 따라 t<sub>SMM</sub>이 
 4. **실제 자료 비교:** 같은 지점에서 자료원(in situ / satellite / reanalysis)과 깊이에 따른 방법별 차이를 비교하고,
    민감도 실험 결과로 그 차이를 해석한다.
 5. **평가 기준:** 합성 자료에서는 참값 대비 bias·spread, 실제 자료에서는 inter-metric consistency, inter-dataset consistency, lagged prediction skill.
+
+### 반복 작업 (스킬로 자동화한 부분)
+월별 일자료 파일(`YYYYMM_land.nc`) 하나와 격자 1개를 골라 10개 방법으로 t<sub>SMM</sub>을 계산하고 비교표를 만든다.
+분석할 연월과 지점을 바꿔 가며 같은 계산을 반복한다.
+이 작업은 `.claude/skills/smm-timescale-compare/`로 정리한다.
+- **입력:** 분석 연월(YYYYMM) + 위경도 1개. 스킬이 연월로 `/land1/ERA5/daily/land/YYYYMM_land.nc` 경로를 만들고, 표층 토양수분(`swvl1`, 0–7 cm)을 읽는다.
+- **출력:** 사용 격자·전처리 설명·방법별 비교표·해석 (`results/`에 저장)
+- **범위:** 위 분석 방법 중 1(기준 계산)만 다룬다. 장기 자료 분석과 합성 자료 실험(2–4)은 포함하지 않는다.
+  한 달 자료로는 장기 lag 방법(Entin, Interannual)을 적용할 수 없으므로, 그 달 안에서 방법 간 차이를 확인하는 데 쓴다.
 
 ## 6. 기대효과
 - **방법론 가이드 제시:** 자료 조건(길이·해상도·잡음·깊이)별로 어떤 방법이 안정적인지 정리해, t<sub>SMM</sub> 산정 방법 선택의 근거를 제공한다.
@@ -66,16 +76,18 @@ sampling frequency, data source, measurement depth에 따라 t<sub>SMM</sub>이 
 - 실제 토양수분에는 참 t<sub>SMM</sub>이 없으므로, 합성 자료에서의 결론이 실제 자료에 그대로 적용된다고 보장할 수 없다.
 - 합성 자료의 생성 모델에 따라 유리한 방법이 달라질 수 있어, 여러 생성 모델을 함께 사용해야 한다.
 - Hybrid model과 APSM은 강수 자료와 임계값 선택이 필요해 다른 방법과 조건을 맞추기 어렵다.
+- 한 달(30일) 자료에서는 계절주기 제거(deseasonalization)가 불가능하고 Entin·Interannual 방법을 적용할 수 없으며,
+  자기상관 기반 값은 표본이 적어 불안정하다. 따라서 현재 결과는 그 달 안에서의 방법 간 차이를 보여줄 뿐, 해당 지점의 기후학적 메모리 길이로 쓸 수 없다.
 
 ## 8. 저장소 구성
 ```
 my-project/
 ├── README.md
-├── results/                          # t<SMM> 비교표·지점 시계열 (스크립트 출력)
+├── results/                          # tSMM 비교표·지점 시계열 (스크립트 출력)
 └── .claude/skills/smm-timescale-compare/
     ├── SKILL.md                      # 사용 조건·작업 순서
     ├── references/research.md        # 배경·용어·방법 정의
-    └── scripts/compute_tsmm.py       # 방법별 t<SMM> 계산 (결과는 results/에 저장)
+    └── scripts/compute_tsmm.py       # 방법별 tSMM 계산 (결과는 results/에 저장)
 ```
 
 ## 9. 주요 참고문헌
