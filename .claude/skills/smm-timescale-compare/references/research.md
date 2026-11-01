@@ -52,7 +52,7 @@
 
 ```python
 import re, pandas as pd
-md = open(MD).read(); body, interp = md.split("\n## 해석", 1)
+md = open(MD).read(); body, interp = md.split("\n## 해석\n", 1)
 src = set(re.findall(r'\d+(?:\.\d+)?', body))
 bad = [x for x in re.findall(r'(?<![D§\w.])\d+(?:\.\d+)?', interp) if x not in src]
 keys = set(pd.read_csv(DERIVED)["key"])
