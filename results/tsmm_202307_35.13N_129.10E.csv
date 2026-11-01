@@ -1,0 +1,11 @@
+method,tsmm_days,tsmm_days_detrended,reliability,reliability_reason,note
+e-folding lag,3.294,2.802,낮음,"N=31, SE(r)≈0.18; 값 3.3일 ≤ N/4=7.8일; detrend 변화 15%; 계절주기 제거 불가로 상한 '중간'",first lag r<=1/e (interp.)
+Zero-crossing lag,8.624,8.062,낮음,abs(r)<SE(r)=0.18인 lag가 18개(lag 5–30) → 교차 위치가 잡음에 좌우됨; 한 달 안의 습윤–건조 순환이 음의 tail을 만듦,first lag r<=0 (interp.)
+Significance-threshold lag,3.426,2.929,낮음,임계값 1.96/√N=0.352이 N만으로 정해짐; 1/e=0.368와 차이 0.016로 e-folding과 독립적인 정보가 거의 없음,first lag r<1.96/sqrt(N)=0.352 (interp.)
+Integral timescale,2.831,2.466,낮음,"N=31, SE(r)≈0.18; 값 2.8일 ≤ N/4=7.8일; detrend 변화 13%; 적분 상한(첫 zero crossing) 선택에 의존, 상한 '중간'","trapezoid of r(tau), lag 0 to first zero crossing"
+Decorrelation time,6.135,5.800,중간,"lag-1만 사용하고 AR(1)을 가정; ρ₁=0.72의 AR(1) e-folding 3.0일 vs 관측 3.3일(차이 8%, 기준 25%); r₂=0.51 vs ρ₁²=0.52","(1+rho1)/(1-rho1), rho1=0.720 (detrended 0.706)"
+Two-timescale decomposition (Entin),,,-,30일 자료로는 수개월 lag의 ln r(τ) 기울기를 구할 수 없음,N/A: needs multi-month lags
+Interannual autocorrelation (Koster & Suarez),,,-,5년 이상(이상적으로 20년) 자료가 필요함,N/A: needs >=5 years
+SMD fitting (median tau),27.141,,중간,"drydown 3개 중 기준(≥6점, R²≥0.95) 충족 1개; τ 범위 4.1–28.1일; 짧은 구간은 매개변수 3개 대비 점이 적어 θw·τ가 불안정","3 drydowns (>= 4 d), 3-param exp fit; raw SM, no anomaly"
+"Hybrid stochastic-deterministic model (McColl et al., 2019)",,,-,원문 식 미확인으로 계산 안 함,"계산 안 함: 원문(McColl et al., 2019)의 t^S·t^L 산정식을 확인하지 못함. 임의로 단순화한 식은 다른 방법과 비교할 수 없으므로 값을 내지 않음"
+APSM (threshold 0),3.100,,낮음,"임계값(0/0.5/1σ)에 따라 2.5–3.8일(변동 42%, 기준 30%); run 10개뿐이고 첫·마지막 run은 월 경계에서 잘림","mean run length of same-sign anomaly; runs=[1, 2, 2, 1, 3, 1, 10, 3, 1, 7]"
