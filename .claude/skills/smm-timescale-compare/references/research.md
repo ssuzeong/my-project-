@@ -15,7 +15,7 @@
 | 6 | Entin | N/A (수개월 lag 필요) |
 | 7 | Interannual | N/A (5년 이상 필요) |
 | 8 | SMD | SM이 연속으로 감소한 구간(4점 이상, 이후 강수 < 5 mm/day)에 3-매개변수 지수함수(θw, Δθ, τ)를 맞추고 τ의 중앙값을 쓴다 |
-| 9 | Hybrid | 계산 안 함 (규칙 3) |
+| 9 | Hybrid | 계산 안 함 (SKILL.md 규칙 3) |
 | 10 | APSM | 아노말리 부호가 같은 run의 평균 길이(임계값 0). 0.5σ·1σ 결과는 민감도로 함께 낸다 |
 
 ## 신뢰도 규칙 (스크립트에 고정)
@@ -30,3 +30,34 @@
 - 강수 관련: 습윤일 1 mm/day, drydown 최소 4점, drydown 중 강수 상한 5 mm/day
 - 신뢰도 기준: N/4, 선형 추세 제거 시 변화 10%, AR(1)과의 차이 25%, APSM 변동 30%, 좋은 drydown 6점·R² 0.95
 - 바꾸려면 스크립트 상수와 이 문서를 함께 고친다.
+
+## 입력 변수
+- `swvl1`: 0–7 cm 체적 토양수분 (m³/m³)
+- `mtpr`: 강수율 (kg m⁻² s⁻¹ → mm/day로 환산)
+- `sst`: 해양 격자 판별용 (NaN이면 육지)
+- 격자: 0.25°, 위경도 각각 가장 가까운 격자를 쓴다.
+
+## 해석 점검 항목
+- 값이 나온 방법 수와 신뢰도 분포
+- '중간' 방법들 사이의 차이와 원인 (정의 차이: 아노말리 ACF vs 물리적 감쇠)
+- decorrelation time과 AR(1) 기대값의 비교
+- 유의수준 lag와 e-folding이 겹치는지 (N=30이면 95% 임계값 ≈ 1/e)
+- zero-crossing과 강수 이벤트의 관계
+- APSM 임계값 민감도, SMD 맞춤 품질, 선형 추세 제거 민감도
+- 결론: 한 달 자료이므로 방법 간 차이만 보여 주며, 기후학적 메모리 길이로 쓰지 않는다 (README §7).
+- 해석은 마지막 실행 뒤에 붙인다. 스크립트를 다시 실행하면 해석 절이 지워진다.
+
+## 숫자 검증 코드
+해석의 숫자가 모두 스크립트 출력에 있는지, 인용한 D 키가 모두 수치 CSV에 있는지 확인한다.
+
+```python
+import re, pandas as pd
+md = open(MD).read(); body, interp = md.split("\n## 해석", 1)
+src = set(re.findall(r'\d+(?:\.\d+)?', body))
+bad = [x for x in re.findall(r'(?<![D§\w.])\d+(?:\.\d+)?', interp) if x not in src]
+keys = set(pd.read_csv(DERIVED)["key"])
+missing = [k for k in re.findall(r'\((D[\d.]+)\)', interp) if k not in keys]
+assert not bad and not missing, (bad, missing)
+```
+
+이 검사는 숫자가 출력 어딘가에 있는지만 본다. 각 숫자가 괄호 속 키의 값과 같은지는 따로 대조한다.
