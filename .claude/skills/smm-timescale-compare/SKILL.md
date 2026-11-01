@@ -7,7 +7,7 @@ description: ERA5 월별 일자료 한 달(/land1/ERA5/daily/land/YYYYMM_land.nc
 
 방법 정의, 신뢰도 규칙, 임의로 정한 기준값, 해석 점검 항목, 숫자 검증 코드는 `references/research.md`에 있다. 작업 전에 읽는다.
 
-README §5 "반복 작업"(기준 계산 1번)만 다룬다. 장기 자료 분석과 합성 자료 실험(2–4번)은 범위 밖이다.
+/my-project-/README.md 내 §5 "반복 작업"(기준 계산 1번)만 다룬다. 장기 자료 분석과 합성 자료 실험(2–4번)은 범위 밖이다.
 
 ## 입력
 - 분석 연월 `YYYYMM`, 위도, 경도 (각 1개)
