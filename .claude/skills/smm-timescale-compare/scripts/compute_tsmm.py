@@ -3,7 +3,7 @@
 for one monthly ERA5 daily file and one grid point, and write a comparison table.
 
 Usage:
-    python scripts/compute_tsmm.py YYYYMM LAT LON [--outdir results]
+    python .claude/skills/smm-timescale-compare/scripts/compute_tsmm.py YYYYMM LAT LON [--outdir results]
 
 Input  : /land1/ERA5/daily/land/YYYYMM_land.nc  (opened read-only, never modified)
          swvl1 (0-7 cm, m3/m3), mtpr (kg m-2 s-1 -> mm/day)
@@ -366,7 +366,7 @@ def main():
         return "N/A" if (v is None or (isinstance(v, float) and math.isnan(v))) else f"{v:.2f}"
     L = []
     L.append(f"# tSMM comparison — {a.ym}, requested ({a.lat:.2f}N, {a.lon:.2f}E)\n")
-    L.append(f"Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC} by `scripts/compute_tsmm.py`.\n")
+    L.append(f"Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC} by `.claude/skills/smm-timescale-compare/scripts/compute_tsmm.py`.\n")
     L.append("## Grid & data")
     L.append(f"- File: `{info['path']}` (read-only)")
     L.append(f"- Nearest grid cell: **{info['grid_lat']:.2f}N, {info['grid_lon']:.2f}E** "

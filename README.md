@@ -86,7 +86,7 @@ my-project/
 ├── results/                          # tSMM 비교표·지점 시계열 (스크립트 출력)
 └── .claude/skills/smm-timescale-compare/
     ├── SKILL.md                      # 사용 조건·작업 순서
-    ├── references/research.md        # 배경·용어·방법 정의
+    ├── references/research.md        # 방법별 처리 요약·신뢰도 규칙·임의로 정한 기준값
     └── scripts/compute_tsmm.py       # 방법별 tSMM 계산 (결과는 results/에 저장)
 ```
 
