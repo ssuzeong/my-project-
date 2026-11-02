@@ -7,7 +7,7 @@ description: ERA5 월별 일자료 한 달(/land1/ERA5/daily/land/YYYYMM_land.nc
 
 방법 정의, 신뢰도 규칙, 임의로 정한 기준값, 해석 점검 항목, 시험용 입력은 `references/research.md`에 있다. 작업 전에 읽는다.
 
-/my-project-/README.md 내 §5 "반복 작업"(기준 계산 1번)만 다룬다. 장기 자료 분석과 합성 자료 실험(2–4번)은 범위 밖이다.
+README.md §5 "반복 작업"(기준 계산 1번)만 다룬다. 장기 자료 분석과 합성 자료 실험(2–4번)은 범위 밖이다.
 
 ## 입력
 - 분석 연월 `YYYYMM`, 위도, 경도 (각 1개)
@@ -40,7 +40,7 @@ description: ERA5 월별 일자료 한 달(/land1/ERA5/daily/land/YYYYMM_land.nc
 | # | 단계 | 꺼내 놓을 결과 | 관문 |
 |---|---|---|---|
 | 1 | 입력 확인 | 연월, 위경도, `ls -la` 결과, `stat -c '%s %Y'` 값(= 기록값) | 세 입력이 모두 있고 파일이 있다. 아니면 묻거나 멈춘다(규칙 0) |
-| 2 | 계획 | `## 계획`의 계획 블록 | `results/`에 커밋 안 된 변경이 없거나, 사용자가 처리 방법을 답했다 |
+| 2 | 계획 | `## 계획`의 계획 블록 | 사용자가 계획을 확인했다. `results/`에 커밋 안 된 변경이 있으면 처리 방법도 답했다 |
 | 3 | 스크립트 실행 | 콘솔 마지막 `Wrote ...` 줄 | 종료 코드 0, 출력 파일 4개가 있다 |
 | 4 | 격자 점검 | 사용한 격자, 요청 지점과의 거리, 육지 여부, 해안 여부 | 보고서에 `land: yes, sst is NaN`이 있다. 해안 격자면 그 사실을 적어 둔다 |
 | 5 | 해석 작성 | 보고서 끝의 `## 해석` 절 | 모든 숫자 뒤에 D 키나 비교표 근거가 괄호로 있다 |
@@ -52,7 +52,7 @@ description: ERA5 월별 일자료 한 달(/land1/ERA5/daily/land/YYYYMM_land.nc
    ls -la /land1/ERA5/daily/land/YYYYMM_land.nc
    stat -c '%s %Y' /land1/ERA5/daily/land/YYYYMM_land.nc
    ```
-2. **계획.** `## 계획`의 블록을 보여 준다. `results/`에 커밋 안 된 변경이 있으면 여기서 묻고 답을 기다린다.
+2. **계획.** `## 계획`의 블록을 보여 주고 "이대로 진행할까요?"라고 묻는다. 사용자가 확인해야 3단계로 간다. `results/`에 커밋 안 된 변경이 있으면 처리 방법도 함께 묻는다.
 3. **스크립트 실행** (저장소 최상위에서):
    ```bash
    python .claude/skills/smm-timescale-compare/scripts/compute_tsmm.py YYYYMM LAT LON --outdir results
@@ -91,7 +91,7 @@ results/ 상태: git status --porcelain results/ 결과 (없으면 "변경 없�
   1. 그대로 덮어쓰고 진행
   2. 사용자가 먼저 커밋하거나 백업한 뒤 진행
   3. 중단
-- 변경이 없으면 묻지 않고 3단계로 간다.
+- 변경이 없어도 계획 블록을 보여 준 뒤 "이대로 진행할까요?"라고 묻고, 사용자가 확인하면 3단계로 간다.
 
 ## 검증
 6단계에서 저장소 최상위에서 실행한다. `SIZE MTIME`은 1단계의 기록값이다.
@@ -124,6 +124,7 @@ python .claude/skills/smm-timescale-compare/scripts/check_result.py \
 
 ## 훅·권한
 - 원본 `/land1/...` nc는 읽기만 한다(규칙 1). 쓰기는 `results/`에만 한다. 시험 파일과 시험 결과는 저장소 밖 `~/compare/testdata/`에 둔다.
+- 짐작한 값은 쓰지 않는다. 연월·위경도가 없으면 묻고(규칙 0), 기준값을 바꿔야 하면 사용자에게 확인한다.
 - 실행하는 명령은 두 스크립트(`compute_tsmm.py`, `check_result.py`)와 `ls`, `stat`, `git status`다.
 - 커밋과 푸시는 사용자가 요청할 때만 한다.
 - 현재 이 저장소에는 `.claude/settings.json`이 없다. 그래서 훅이 없고, 결과 점검은 훅이 아니라 6단계에서 직접 실행한다.
