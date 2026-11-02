@@ -5,6 +5,9 @@ for one monthly ERA5 daily file and one grid point, and write a comparison table
 Usage:
     python .claude/skills/smm-timescale-compare/scripts/compute_tsmm.py YYYYMM LAT LON [--outdir results]
 
+    TEST ONLY: --input PATH reads a test nc file (same variables) instead of the ERA5 original.
+    It must not be under /land1, and --outdir must not be the repository's results/ directory.
+
 Input  : /land1/ERA5/daily/land/YYYYMM_land.nc  (opened read-only, never modified)
          swvl1 (0-7 cm, m3/m3), mtpr (kg m-2 s-1 -> mm/day)
 Output : <outdir>/tsmm_YYYYMM_<lat>N_<lon>E.csv          method table
@@ -30,8 +33,8 @@ MIN_DRYDOWN_LEN = 4      # minimum number of points in a drydown
 
 
 # ---------------------------------------------------------------- data
-def load_point(ym, lat, lon):
-    path = DATA_TMPL.format(ym=ym)
+def load_point(ym, lat, lon, path=None):
+    path = path or DATA_TMPL.format(ym=ym)
     with xr.open_dataset(path) as ds:      # read-only access
         p = ds[["swvl1", "mtpr"]].sel(latitude=lat, longitude=lon, method="nearest").load()
         sst_mean = float(ds["sst"].sel(latitude=lat, longitude=lon, method="nearest").mean())
@@ -301,9 +304,19 @@ def main():
     ap.add_argument("lat", type=float)
     ap.add_argument("lon", type=float)
     ap.add_argument("--outdir", default="results")
+    ap.add_argument("--input", default=None,
+                    help="TEST ONLY: test nc file to read instead of the ERA5 original")
     a = ap.parse_args()
 
-    df, info = load_point(a.ym, a.lat, a.lon)
+    if a.input:
+        src = os.path.realpath(a.input)
+        if src.startswith("/land1/"):
+            raise SystemExit("--input is for test files only; do not point it at /land1.")
+        repo_results = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "results"))
+        if os.path.realpath(a.outdir) == repo_results:
+            raise SystemExit("--input (test) must not write to the repository results/; pass another --outdir.")
+
+    df, info = load_point(a.ym, a.lat, a.lon, a.input)
     if df["swvl1"].isna().any():
         raise SystemExit("swvl1 has missing values at this grid point (sea or masked cell).")
     sm, p = df["swvl1"].values, df["precip_mm_day"].values
@@ -368,7 +381,7 @@ def main():
     L.append(f"# tSMM comparison — {a.ym}, requested ({a.lat:.2f}N, {a.lon:.2f}E)\n")
     L.append(f"Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC} by `.claude/skills/smm-timescale-compare/scripts/compute_tsmm.py`.\n")
     L.append("## Grid & data")
-    L.append(f"- File: `{info['path']}` (read-only)")
+    L.append(f"- File: `{info['path']}` (read-only)" + (" — TEST INPUT (--input)" if a.input else ""))
     L.append(f"- Nearest grid cell: **{info['grid_lat']:.2f}N, {info['grid_lon']:.2f}E** "
              f"(land: {'yes, sst is NaN' if info['land'] else 'NO — sst defined, check cell'})")
     L.append(f"- Variable: swvl1 (0–7 cm, m³/m³), N = {n} days "

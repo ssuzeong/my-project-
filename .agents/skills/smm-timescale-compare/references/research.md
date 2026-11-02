@@ -47,17 +47,57 @@
 - 결론: 한 달 자료이므로 방법 간 차이만 보여 주며, 기후학적 메모리 길이로 쓰지 않는다 (README §7).
 - 해석은 마지막 실행 뒤에 붙인다. 스크립트를 다시 실행하면 해석 절이 지워진다.
 
-## 숫자 검증 코드
-해석의 숫자가 모두 스크립트 출력에 있는지, 인용한 D 키가 모두 수치 CSV에 있는지 확인한다.
+## 숫자 검증
+숫자 검증은 `scripts/check_result.py`가 한다(`interp` 항목). 해석의 숫자가 모두 스크립트 출력에 있는지, 인용한 D 키가 모두 `_derived.csv`에 있는지 확인한다. `(D15, D16, D17)`처럼 괄호 하나에 키를 여러 개 쓴 경우도 키마다 본다. 사용법과 재시도 규칙은 SKILL.md `## 검증`을 따른다.
+
+이 검사는 숫자가 출력 어딘가에 있는지만 본다. 각 숫자가 괄호 속 키의 값과 같은지는 따로 대조한다(SKILL.md `## 서브에이전트`).
+
+## 시험용 입력 (`--input`, 시험 전용)
+`compute_tsmm.py --input PATH`는 원본 ERA5 대신 같은 변수(`swvl1`, `mtpr`, `sst`)를 가진 **시험용** nc를 읽는다. "일부러 틀린 입력"에 `check_result.py`가 걸리는지 확인할 때만 쓰고, 실제 분석에는 쓰지 않는다.
+- `PATH`가 `/land1` 아래면 스크립트가 거부한다.
+- `--outdir`이 저장소의 `results/`면 스크립트가 거부한다.
+- 보고서 `File:` 줄에 `TEST INPUT (--input)`이 붙는다.
+- 시험 파일은 저장소 밖 `~/compare/testdata/`에, 시험 결과는 `~/compare/testdata/out/`에 둔다. `/land1`과 저장소 안에는 만들지 않는다.
+- 시험 파일을 만드는 스크립트는 자료와 섞이지 않게 `~/compare/make_test_nc.py`에 둔다.
+
+**결측을 섞은 시험 파일 만들기.**
+- 원본에서 지점 주변 ±1°만 읽기 전용으로 잘라 온다.
+- 아래 스크립트를 `~/compare/make_test_nc.py`로 저장해 실행한다.
+- 실행 전후에 원본의 `stat -c '%s %Y'`가 같은지 확인한다.
 
 ```python
-import re, pandas as pd
-md = open(MD).read(); body, interp = md.split("\n## 해석\n", 1)
-src = set(re.findall(r'\d+(?:\.\d+)?', body))
-bad = [x for x in re.findall(r'(?<![D§\w.])\d+(?:\.\d+)?', interp) if x not in src]
-keys = set(pd.read_csv(DERIVED)["key"])
-missing = [k for k in re.findall(r'\((D[\d.]+)\)', interp) if k not in keys]
-assert not bad and not missing, (bad, missing)
+# make_test_nc.py SRC OUTDIR LAT LON
+import sys, numpy as np, xarray as xr
+src, out, lat, lon = sys.argv[1], sys.argv[2], float(sys.argv[3]), float(sys.argv[4])
+assert not out.startswith("/land1"), "test files must not go under /land1"
+with xr.open_dataset(src) as ds:                       # original opened read-only
+    sub = ds[["swvl1", "mtpr", "sst"]].sel(latitude=slice(lat + 1, lat - 1),
+                                           longitude=slice(lon - 1, lon + 1)).load()
+pt = dict(latitude=sub.latitude.sel(latitude=lat, method="nearest"),
+          longitude=sub.longitude.sel(longitude=lon, method="nearest"))
+sub.to_netcdf(f"{out}/clean.nc")                                   # 결측 없음
+a = sub.copy(deep=True); a["mtpr"].loc[dict(time=a.time[[3, 4, 17]], **pt)] = np.nan
+a.to_netcdf(f"{out}/precip_nan.nc")                                # 강수 3일 결측
+sub.isel(time=[i for i in range(sub.sizes["time"]) if i != 14]).to_netcdf(f"{out}/dropday.nc")  # 15일째 빠짐
+b = sub.copy(deep=True); b["swvl1"].loc[dict(time=b.time[[10]], **pt)] = np.nan
+b.to_netcdf(f"{out}/swvl1_nan.nc")                                 # swvl1 1일 결측
 ```
 
-이 검사는 숫자가 출력 어딘가에 있는지만 본다. 각 숫자가 괄호 속 키의 값과 같은지는 따로 대조한다.
+```bash
+T=~/compare/testdata
+mkdir -p $T
+python -I ~/compare/make_test_nc.py /land1/ERA5/daily/land/202306_land.nc $T 35.13 129.10
+python .claude/skills/smm-timescale-compare/scripts/compute_tsmm.py 202306 35.13 129.10 --input $T/precip_nan.nc --outdir $T/out
+python .claude/skills/smm-timescale-compare/scripts/check_result.py $T/out/tsmm_202306_35.13N_129.10E --expect-stat "$(stat -c '%s %Y' $T/precip_nan.nc)"
+```
+
+기대 결과 (202306, 35.13N 129.10E로 확인함):
+
+| 시험 파일 | compute_tsmm.py | check_result.py |
+|---|---|---|
+| `clean.nc` | 종료 코드 0. CSV 3개가 원본으로 계산한 결과와 같음 | 해석이 없으면 `interp`만 걸림. 해석을 붙이면 `OK` |
+| `precip_nan.nc` | 종료 코드 0 | `timeseries`: precip_mm_day 결측 3개 |
+| `dropday.nc` | 종료 코드 0 | `timeseries`: 06/14→06/16 날짜 끊김, 29일 |
+| `swvl1_nan.nc` | 종료 코드 1, swvl1 결측으로 계산 거부 | 출력 파일이 없어 실행하지 않음 |
+
+비교표, 신뢰도, 해석, stat 항목은 결과 파일 사본을 고쳐서 시험한다. 예: CSV 한 행 지우기, 신뢰도를 `보통`으로 바꾸기, 해석에 출력에 없는 숫자나 `D99` 넣기, `--expect-stat`의 수정 시각을 1 늘리기.
